@@ -1,24 +1,17 @@
+mod hittable;
+mod hittable_list;
+mod ray;
+
+use crate::hittable::{HitRecord, Hittable, Sphere};
+use crate::hittable_list::HittableList;
+use ray::Ray;
+
 use minifb::{Key, Window, WindowOptions};
 use ndarray::Array1;
 use std::error::Error;
 
 const WIDTH: usize = 400;
 const HEIGHT: usize = 200;
-
-struct Ray<'a> {
-    origin: &'a Array1<f64>,
-    direction: &'a Array1<f64>,
-}
-
-impl<'a> Ray<'a> {
-    pub fn new(origin: &'a Array1<f64>, direction: &'a Array1<f64>) -> Ray<'a> {
-        Ray { origin, direction }
-    }
-
-    pub fn point_at_parameter(&self, t: f64) -> Array1<f64> {
-        (t * self.direction) + self.origin
-    }
-}
 
 trait MoreOps {
     fn unit_vector(&self) -> Array1<f64>;
@@ -38,30 +31,19 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn color(r: &Ray, sphere_center: &Array1<f64>, sphere_radius: f64) -> Array1<f64> {
-    let t = hit_sphere(sphere_center, sphere_radius, r);
-
-    if t > 0. {
-        let N = (r.point_at_parameter(t) - sphere_center).unit_vector();
-        return 0.5 * (Array1::from(vec![N[0] + 1., N[1] + 1., N[2] + 1.]));
-    }
-
-    let unit_direction = r.direction.unit_vector();
-    let t: f64 = 0.5 * (unit_direction[1] + 1.0);
-    (1.0 - t) * Array1::from(vec![1., 1., 1.]) + t * Array1::from(vec![0.5, 0.7, 1.])
-}
-
-fn hit_sphere(center: &Array1<f64>, radius: f64, r: &Ray) -> f64 {
-    let oc = r.origin - center;
-    let a = r.direction.dot(r.direction);
-    let b = 2.0 * oc.dot(r.direction);
-    let c = oc.dot(&oc) - radius * radius;
-    let discriminant = b * b - 4. * a * c;
-
-    if discriminant < 0. {
-        -1.
+fn color(r: &Ray, world: &mut dyn Hittable) -> Array1<f64> {
+    let mut rec = HitRecord::new();
+    if world.hit(r, 0.0, std::f64::MAX, &mut rec) {
+        return 0.5
+            * (Array1::from(vec![
+                rec.normal[0] + 1.,
+                rec.normal[1] + 1.,
+                rec.normal[2] + 1.,
+            ]));
     } else {
-        (-b - discriminant.sqrt()) / (2. * a)
+        let unit_direction = r.direction.unit_vector();
+        let t: f64 = 0.5 * (unit_direction[1] + 1.0);
+        (1.0 - t) * Array1::from(vec![1., 1., 1.]) + t * Array1::from(vec![0.5, 0.7, 1.])
     }
 }
 
@@ -75,8 +57,18 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let horizontal = Array1::from(vec![4., 0., 0.]);
     let vertical = Array1::from(vec![0., 2., 0.]);
     let origin = Array1::from(vec![0., 0., 0.]);
-    let sphere_center = Array1::from(vec![0., 0., -1.]);
-    let sphere_radius = 0.5;
+
+    let mut list = Vec::new();
+    list.push(Box::new(Sphere {
+        center: Array1::from(vec![0., 0., -1.]),
+        radius: 0.5,
+    }));
+    list.push(Box::new(Sphere {
+        center: Array1::from(vec![0., -100.5, -1.]),
+        radius: 100.,
+    }));
+
+    let mut world = HittableList { list };
 
     while window.is_open() && !window.is_key_down(Key::Enter) {
         for (i, bi) in buffer.iter_mut().enumerate() {
@@ -85,7 +77,9 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
             let direction = u * &horizontal + v * &vertical + &lower_left_corner;
             let r = Ray::new(&origin, &direction);
-            let col = color(&r, &sphere_center, sphere_radius);
+
+            let p = r.point_at_parameter(2.);
+            let col = color(&r, &mut world);
 
             let ir = (255.0 * col[0]) as u32;
             let ig = (255.0 * col[1]) as u32;
