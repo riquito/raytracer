@@ -2,8 +2,8 @@ use minifb::{Key, Window, WindowOptions};
 use ndarray::Array1;
 use std::error::Error;
 
-const WIDTH: usize = 640;
-const HEIGHT: usize = 400;
+const WIDTH: usize = 400;
+const HEIGHT: usize = 200;
 
 struct Ray<'a> {
     origin: &'a Array1<f64>,
@@ -44,6 +44,15 @@ fn color(r: &Ray) -> Array1<f64> {
     (1.0 - t) * Array1::from(vec![1., 1., 1.]) + t * Array1::from(vec![0.5, 0.7, 1.])
 }
 
+fn hit_sphere(center: &Array1<f64>, radius: f64, r: &Ray) -> bool {
+    let oc = r.origin - center;
+    let a = r.direction.dot(r.direction);
+    let b = 2.0 * oc.dot(r.direction);
+    let c = oc.dot(&oc) - radius * radius;
+    let discriminant = b * b - 4. * a * c;
+    discriminant > 0.
+}
+
 pub fn run() -> Result<(), Box<dyn Error>> {
     let mut window = Window::new("Test", WIDTH, HEIGHT, WindowOptions::default())?;
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
@@ -54,6 +63,8 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let horizontal = Array1::from(vec![4., 0., 0.]);
     let vertical = Array1::from(vec![0., 2., 0.]);
     let origin = Array1::from(vec![0., 0., 0.]);
+    let sphere_center = Array1::from(vec![0., 0., -1.]);
+    let sphere_radius = 0.5;
 
     while window.is_open() && !window.is_key_down(Key::Enter) {
         for (i, bi) in buffer.iter_mut().enumerate() {
@@ -62,7 +73,11 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
             let direction = u * &horizontal + v * &vertical + &lower_left_corner;
             let r = Ray::new(&origin, &direction);
-            let col = color(&r);
+            let col = if hit_sphere(&sphere_center, sphere_radius, &r) {
+                Array1::from(vec![1., 0., 0.])
+            } else {
+                color(&r)
+            };
 
             let ir = (255.0 * col[0]) as u32;
             let ig = (255.0 * col[1]) as u32;
