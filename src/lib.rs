@@ -38,19 +38,31 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn color(r: &Ray) -> Array1<f64> {
+fn color(r: &Ray, sphere_center: &Array1<f64>, sphere_radius: f64) -> Array1<f64> {
+    let t = hit_sphere(sphere_center, sphere_radius, r);
+
+    if t > 0. {
+        let N = (r.point_at_parameter(t) - sphere_center).unit_vector();
+        return 0.5 * (Array1::from(vec![N[0] + 1., N[1] + 1., N[2] + 1.]));
+    }
+
     let unit_direction = r.direction.unit_vector();
     let t: f64 = 0.5 * (unit_direction[1] + 1.0);
     (1.0 - t) * Array1::from(vec![1., 1., 1.]) + t * Array1::from(vec![0.5, 0.7, 1.])
 }
 
-fn hit_sphere(center: &Array1<f64>, radius: f64, r: &Ray) -> bool {
+fn hit_sphere(center: &Array1<f64>, radius: f64, r: &Ray) -> f64 {
     let oc = r.origin - center;
     let a = r.direction.dot(r.direction);
     let b = 2.0 * oc.dot(r.direction);
     let c = oc.dot(&oc) - radius * radius;
     let discriminant = b * b - 4. * a * c;
-    discriminant > 0.
+
+    if discriminant < 0. {
+        -1.
+    } else {
+        (-b - discriminant.sqrt()) / (2. * a)
+    }
 }
 
 pub fn run() -> Result<(), Box<dyn Error>> {
@@ -73,11 +85,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
             let direction = u * &horizontal + v * &vertical + &lower_left_corner;
             let r = Ray::new(&origin, &direction);
-            let col = if hit_sphere(&sphere_center, sphere_radius, &r) {
-                Array1::from(vec![1., 0., 0.])
-            } else {
-                color(&r)
-            };
+            let col = color(&r, &sphere_center, sphere_radius);
 
             let ir = (255.0 * col[0]) as u32;
             let ig = (255.0 * col[1]) as u32;
