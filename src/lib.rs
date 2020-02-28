@@ -76,7 +76,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             let v = 1.0 - (i as f64 / WIDTH as f64 / HEIGHT as f64);
 
             let direction = u * &horizontal + v * &vertical + &lower_left_corner;
-            let r = Ray::new(&origin, &direction);
+            let r = Ray::new(origin.clone(), direction);
 
             let p = r.point_at_parameter(2.);
             let col = color(&r, &mut world);

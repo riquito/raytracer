@@ -29,9 +29,9 @@ pub struct Sphere {
 
 impl Hittable for Sphere {
     fn hit(&self, r: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
-        let oc = r.origin - &self.center;
-        let a = r.direction.dot(r.direction);
-        let b = oc.dot(r.direction);
+        let oc = &r.origin - &self.center;
+        let a = r.direction.dot(&r.direction);
+        let b = oc.dot(&r.direction);
         let c = oc.dot(&oc) - self.radius * self.radius;
         let discriminant = b * b - a * c;
 
