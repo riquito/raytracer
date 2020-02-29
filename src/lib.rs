@@ -1,13 +1,16 @@
+mod camera;
 mod hittable;
 mod hittable_list;
 mod ray;
 
+use crate::camera::Camera;
 use crate::hittable::{HitRecord, Hittable, Sphere};
 use crate::hittable_list::HittableList;
 use ray::Ray;
 
 use minifb::{Key, Window, WindowOptions};
 use ndarray::Array1;
+use rand::Rng;
 use std::error::Error;
 
 const WIDTH: usize = 400;
@@ -57,6 +60,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let horizontal = Array1::from(vec![4., 0., 0.]);
     let vertical = Array1::from(vec![0., 2., 0.]);
     let origin = Array1::from(vec![0., 0., 0.]);
+    let cam = Camera::new(lower_left_corner, horizontal, vertical, origin);
 
     let mut list = Vec::new();
     list.push(Box::new(Sphere {
@@ -69,17 +73,23 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     }));
 
     let mut world = HittableList { list };
+    let mut rng = rand::thread_rng();
+    let samples_per_pixel = 100;
 
     while window.is_open() && !window.is_key_down(Key::Enter) {
         for (i, bi) in buffer.iter_mut().enumerate() {
             let u = (i % WIDTH) as f64 / WIDTH as f64;
             let v = 1.0 - (i as f64 / WIDTH as f64 / HEIGHT as f64);
 
-            let direction = u * &horizontal + v * &vertical + &lower_left_corner;
-            let r = Ray::new(origin.clone(), direction);
+            let mut col = Array1::from(vec![0., 0., 0.]);
+            for s in 0..samples_per_pixel {
+                let tmp_u = (u + rng.gen::<f64>() / WIDTH as f64);
+                let tmp_v = (v + rng.gen::<f64>() / HEIGHT as f64);
+                let r = cam.get_ray(tmp_u, tmp_v);
 
-            let p = r.point_at_parameter(2.);
-            let col = color(&r, &mut world);
+                col = col + color(&r, &mut world);
+            }
+            col = col / (samples_per_pixel as f64);
 
             let ir = (255.0 * col[0]) as u32;
             let ig = (255.0 * col[1]) as u32;
