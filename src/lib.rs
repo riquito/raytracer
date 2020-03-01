@@ -187,19 +187,19 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let world = HittableList { list };
     let chunks = 1000;
 
+    buffer
+        .par_chunks_mut(chunks)
+        .enumerate()
+        .for_each(|(i_w, window)| {
+            let mut i = i_w * chunks;
+            for bi in window {
+                *bi = draw_pixel(i, WIDTH, HEIGHT, &cam, &world);
+                i += 1;
+            }
+        });
+
     while window.is_open() && !window.is_key_down(Key::Enter) {
         let start = std::time::Instant::now();
-        buffer
-            .par_chunks_mut(chunks)
-            .enumerate()
-            .for_each(|(i_w, window)| {
-                let mut i = i_w * chunks;
-                for bi in window {
-                    *bi = draw_pixel(i, WIDTH, HEIGHT, &cam, &world);
-                    i += 1;
-                }
-            });
-
         window.update_with_buffer(&buffer, WIDTH, HEIGHT)?;
         let duration = start.elapsed();
 
