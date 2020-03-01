@@ -62,11 +62,11 @@ fn color(r: &Ray, world: &dyn Hittable, depth: usize) -> Array1<f64> {
     let mut rec = HitRecord::new();
     if world.hit(r, 0.001, std::f64::MAX, &mut rec) {
         // If we've exceeded the ray bounce limit, no more light is gathered.
-        if depth <= 0 {
+        if depth == 0 {
             return Array1::<f64>::zeros(3);
         }
         let target = random_in_unit_sphere() + &rec.p + &rec.normal;
-        return 0.5 * color(&Ray::new(rec.p.clone(), target - &rec.p), world, depth);
+        0.5 * color(&Ray::new(rec.p.clone(), target - &rec.p), world, depth - 1)
     } else {
         let unit_direction = r.direction.unit_vector();
         let t: f64 = 0.5 * (unit_direction[1] + 1.0);
