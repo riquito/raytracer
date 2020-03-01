@@ -35,17 +35,14 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn random_in_unit_sphere() -> Array1<f64> {
+fn random_unit_vector() -> Array1<f64> {
     let mut rng = rand::thread_rng();
 
-    loop {
-        let x = Array1::from(vec![1., 1., 1.]);
-        let p = 2.0 * Array1::from(vec![rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()]) - x;
+    let a: f64 = rng.gen_range(0., 2. * std::f64::consts::PI);
+    let z: f64 = rng.gen_range(-1., 1.);
+    let r = (1. - z * z).sqrt();
 
-        if p.squared_length() < 1.0 {
-            return p;
-        }
-    }
+    Array1::from(vec![r * a.cos(), r * a.sin(), z])
 }
 
 fn clamp(x: f64, min: f64, max: f64) -> f64 {
@@ -65,7 +62,7 @@ fn color(r: &Ray, world: &dyn Hittable, depth: usize) -> Array1<f64> {
         if depth == 0 {
             return Array1::<f64>::zeros(3);
         }
-        let target = random_in_unit_sphere() + &rec.p + &rec.normal;
+        let target = random_unit_vector() + &rec.p + &rec.normal;
         0.5 * color(&Ray::new(rec.p.clone(), target - &rec.p), world, depth - 1)
     } else {
         let unit_direction = r.direction.unit_vector();
