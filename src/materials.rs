@@ -1,4 +1,5 @@
 use crate::hittable::HitRecord;
+use crate::random_in_unit_sphere;
 use crate::random_unit_vector;
 use crate::ray::Ray;
 use crate::MoreOps;
@@ -29,6 +30,13 @@ impl MaterialCommon for Lambertian {
 
 pub struct Metal {
     pub albedo: Array1<f64>,
+    pub fuzz: f64,
+}
+
+impl Metal {
+    pub fn new(albedo: Array1<f64>, fuzz: f64) -> Metal {
+        Metal { albedo, fuzz }
+    }
 }
 
 fn reflect(v: &Array1<f64>, n: &Array1<f64>) -> Array1<f64> {
@@ -38,7 +46,10 @@ fn reflect(v: &Array1<f64>, n: &Array1<f64>) -> Array1<f64> {
 impl MaterialCommon for Metal {
     fn scatter(&self, r_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let reflected = reflect(&r_in.direction.unit_vector(), &rec.normal);
-        let scattered = Ray::new(rec.p.clone(), reflected);
+        let scattered = Ray::new(
+            rec.p.clone(),
+            reflected + self.fuzz * random_in_unit_sphere(),
+        );
 
         if scattered.direction.dot(&rec.normal) > 0. {
             Some(Scatter {

@@ -37,6 +37,22 @@ impl MoreOps for Array1<f64> {
     }
 }
 
+pub fn random_in_unit_sphere() -> Array1<f64> {
+    let mut rng = rand::thread_rng();
+
+    loop {
+        let p: Array1<f64> = Array1::from(vec![
+            rng.gen_range(-1., 1.),
+            rng.gen_range(-1., 1.),
+            rng.gen_range(-1., 1.),
+        ]);
+
+        if p.squared_length() < 1.0 {
+            return p;
+        }
+    }
+}
+
 pub fn random_unit_vector() -> Array1<f64> {
     let mut rng = rand::thread_rng();
 
@@ -142,16 +158,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         Sphere {
             center: Array1::from(vec![1., 0., -1.]),
             radius: 0.5,
-            material: Material::Metal(Metal {
-                albedo: Array1::from(vec![0.8, 0.6, 0.2]),
-            }),
+            material: Material::Metal(Metal::new(Array1::from(vec![0.8, 0.6, 0.2]), 0.3)),
         },
         Sphere {
             center: Array1::from(vec![-1., 0., -1.]),
             radius: 0.5,
-            material: Material::Metal(Metal {
-                albedo: Array1::from(vec![0.8, 0.8, 0.8]),
-            }),
+            material: Material::Metal(Metal::new(Array1::from(vec![0.8, 0.8, 0.8]), 1.0)),
         },
     ];
 
