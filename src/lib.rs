@@ -35,15 +35,38 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn color(r: &Ray, world: &dyn Hittable) -> Array1<f64> {
+fn random_in_unit_sphere() -> Array1<f64> {
+    let mut rng = rand::thread_rng();
+
+    loop {
+        let x = Array1::from(vec![1., 1., 1.]);
+        let p = 2.0 * Array1::from(vec![rng.gen::<f64>(), rng.gen::<f64>(), rng.gen::<f64>()]) - x;
+
+        if p.squared_length() < 1.0 {
+            return p;
+        }
+    }
+}
+
+fn clamp(x: f64, min: f64, max: f64) -> f64 {
+    if x < min {
+        min
+    } else if x > max {
+        max
+    } else {
+        x
+    }
+}
+
+fn color(r: &Ray, world: &dyn Hittable, depth: usize) -> Array1<f64> {
     let mut rec = HitRecord::new();
-    if world.hit(r, 0.0, std::f64::MAX, &mut rec) {
-        return 0.5
-            * (Array1::from(vec![
-                rec.normal[0] + 1.,
-                rec.normal[1] + 1.,
-                rec.normal[2] + 1.,
-            ]));
+    if world.hit(r, 0.001, std::f64::MAX, &mut rec) {
+        // If we've exceeded the ray bounce limit, no more light is gathered.
+        if depth <= 0 {
+            return Array1::<f64>::zeros(3);
+        }
+        let target = random_in_unit_sphere() + &rec.p + &rec.normal;
+        return 0.5 * color(&Ray::new(rec.p.clone(), target - &rec.p), world, depth);
     } else {
         let unit_direction = r.direction.unit_vector();
         let t: f64 = 0.5 * (unit_direction[1] + 1.0);
@@ -64,18 +87,19 @@ pub fn draw_pixel(
 
     let mut col = Array1::from(vec![0., 0., 0.]);
     let samples_per_pixel = 100;
+    let max_depth = 50;
     for _ in 0..samples_per_pixel {
         let tmp_u = u + rng.gen::<f64>() / width as f64;
         let tmp_v = v + rng.gen::<f64>() / height as f64;
         let r = cam.get_ray(tmp_u, tmp_v);
 
-        col = col + color(&r, world);
+        col = col + color(&r, world, max_depth);
     }
     col = col / (samples_per_pixel as f64);
 
-    let ir = (255.0 * col[0]) as u32;
-    let ig = (255.0 * col[1]) as u32;
-    let ib = (255.0 * col[2]) as u32;
+    let ir = (256.0 * clamp(col[0], 0.0, 0.999)) as u32;
+    let ig = (256.0 * clamp(col[1], 0.0, 0.999)) as u32;
+    let ib = (256.0 * clamp(col[2], 0.0, 0.999)) as u32;
     (ir << 16) | (ig << 8) | ib
 }
 
