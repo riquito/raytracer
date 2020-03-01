@@ -95,7 +95,7 @@ pub fn draw_pixel(
 
         col = col + color(&r, world, max_depth);
     }
-    col = col / (samples_per_pixel as f64);
+    col /= samples_per_pixel as f64;
 
     let ir = (256.0 * clamp(col[0], 0.0, 0.999)) as u32;
     let ig = (256.0 * clamp(col[1], 0.0, 0.999)) as u32;
@@ -107,7 +107,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut window = Window::new("Test", WIDTH, HEIGHT, WindowOptions::default())?;
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
 
-    window.limit_update_rate(Some(std::time::Duration::from_micros(1000000)));
+    window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000)));
 
     let lower_left_corner = Array1::from(vec![-2., -1., -1.]);
     let horizontal = Array1::from(vec![4., 0., 0.]);
@@ -116,14 +116,14 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let cam = Camera::new(lower_left_corner, horizontal, vertical, origin);
 
     let mut list = Vec::new();
-    list.push(Box::new(Sphere {
+    list.push(Sphere {
         center: Array1::from(vec![0., 0., -1.]),
         radius: 0.5,
-    }));
-    list.push(Box::new(Sphere {
+    });
+    list.push(Sphere {
         center: Array1::from(vec![0., -100.5, -1.]),
         radius: 100.,
-    }));
+    });
 
     let world = HittableList { list };
     let chunks = 1000;

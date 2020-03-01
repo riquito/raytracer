@@ -2,7 +2,7 @@ use crate::hittable::{HitRecord, Hittable};
 use crate::ray::Ray;
 
 pub struct HittableList<T: Hittable> {
-    pub list: Vec<Box<T>>,
+    pub list: Vec<T>,
 }
 
 impl<T: Hittable> Hittable for HittableList<T> {

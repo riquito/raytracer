@@ -8,13 +8,19 @@ pub struct HitRecord {
     pub normal: Array1<f64>,
 }
 
-impl HitRecord {
-    pub fn new() -> HitRecord {
+impl Default for HitRecord {
+    fn default() -> Self {
         HitRecord {
             t: 0.,
             p: Array1::zeros(3),
             normal: Array1::zeros(3),
         }
+    }
+}
+
+impl HitRecord {
+    pub fn new() -> Self {
+        Default::default()
     }
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Array1<f64>) {
         let front_face = r.direction.dot(&outward_normal) < 0.;
