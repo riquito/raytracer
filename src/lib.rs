@@ -11,6 +11,7 @@ use ray::Ray;
 use minifb::{Key, Window, WindowOptions};
 use ndarray::Array1;
 use rand::Rng;
+use rayon::prelude::*;
 use std::error::Error;
 
 const WIDTH: usize = 400;
@@ -34,7 +35,7 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn color(r: &Ray, world: &mut dyn Hittable) -> Array1<f64> {
+fn color(r: &Ray, world: &dyn Hittable) -> Array1<f64> {
     let mut rec = HitRecord::new();
     if world.hit(r, 0.0, std::f64::MAX, &mut rec) {
         return 0.5
@@ -48,6 +49,34 @@ fn color(r: &Ray, world: &mut dyn Hittable) -> Array1<f64> {
         let t: f64 = 0.5 * (unit_direction[1] + 1.0);
         (1.0 - t) * Array1::from(vec![1., 1., 1.]) + t * Array1::from(vec![0.5, 0.7, 1.])
     }
+}
+
+pub fn draw_pixel(
+    i: usize,
+    width: usize,
+    height: usize,
+    cam: &Camera,
+    world: &dyn Hittable,
+) -> u32 {
+    let mut rng = rand::thread_rng();
+    let u = (i % width) as f64 / width as f64;
+    let v = 1.0 - (i as f64 / width as f64 / height as f64);
+
+    let mut col = Array1::from(vec![0., 0., 0.]);
+    let samples_per_pixel = 100;
+    for _ in 0..samples_per_pixel {
+        let tmp_u = u + rng.gen::<f64>() / width as f64;
+        let tmp_v = v + rng.gen::<f64>() / height as f64;
+        let r = cam.get_ray(tmp_u, tmp_v);
+
+        col = col + color(&r, world);
+    }
+    col = col / (samples_per_pixel as f64);
+
+    let ir = (255.0 * col[0]) as u32;
+    let ig = (255.0 * col[1]) as u32;
+    let ib = (255.0 * col[2]) as u32;
+    (ir << 16) | (ig << 8) | ib
 }
 
 pub fn run() -> Result<(), Box<dyn Error>> {
@@ -72,30 +101,20 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         radius: 100.,
     }));
 
-    let mut world = HittableList { list };
-    let mut rng = rand::thread_rng();
-    let samples_per_pixel = 100;
+    let world = HittableList { list };
+    let chunks = 1000;
 
     while window.is_open() && !window.is_key_down(Key::Enter) {
-        for (i, bi) in buffer.iter_mut().enumerate() {
-            let u = (i % WIDTH) as f64 / WIDTH as f64;
-            let v = 1.0 - (i as f64 / WIDTH as f64 / HEIGHT as f64);
-
-            let mut col = Array1::from(vec![0., 0., 0.]);
-            for s in 0..samples_per_pixel {
-                let tmp_u = (u + rng.gen::<f64>() / WIDTH as f64);
-                let tmp_v = (v + rng.gen::<f64>() / HEIGHT as f64);
-                let r = cam.get_ray(tmp_u, tmp_v);
-
-                col = col + color(&r, &mut world);
-            }
-            col = col / (samples_per_pixel as f64);
-
-            let ir = (255.0 * col[0]) as u32;
-            let ig = (255.0 * col[1]) as u32;
-            let ib = (255.0 * col[2]) as u32;
-            *bi = (ir << 16) | (ig << 8) | ib;
-        }
+        buffer
+            .par_chunks_mut(chunks)
+            .enumerate()
+            .for_each(|(i_w, window)| {
+                let mut i = i_w * chunks;
+                for bi in window {
+                    *bi = draw_pixel(i, WIDTH, HEIGHT, &cam, &world);
+                    i += 1;
+                }
+            });
 
         window.update_with_buffer(&buffer, WIDTH, HEIGHT)?;
     }
