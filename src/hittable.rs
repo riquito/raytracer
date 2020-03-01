@@ -8,6 +8,7 @@ pub struct HitRecord<'a> {
     pub p: Array1<f64>,
     pub normal: Array1<f64>,
     pub material: &'a Material,
+    pub front_face: bool,
 }
 
 impl<'a> HitRecord<'a> {
@@ -17,11 +18,12 @@ impl<'a> HitRecord<'a> {
             p: Array1::zeros(3),
             normal: Array1::zeros(3),
             material,
+            front_face: false,
         }
     }
     pub fn set_face_normal(&mut self, r: &Ray, outward_normal: Array1<f64>) {
-        let front_face = r.direction.dot(&outward_normal) < 0.;
-        self.normal = if front_face {
+        self.front_face = r.direction.dot(&outward_normal) < 0.;
+        self.normal = if self.front_face {
             outward_normal
         } else {
             -outward_normal
@@ -56,6 +58,7 @@ impl Hittable for Sphere {
                     p: r.point_at_parameter(temp),
                     normal: Array1::zeros(3),
                     material: &self.material,
+                    front_face: false,
                 };
 
                 let outward_normal = (&rec.p - &self.center) / self.radius;
@@ -71,6 +74,7 @@ impl Hittable for Sphere {
                     p: r.point_at_parameter(temp),
                     normal: Array1::zeros(3),
                     material: &self.material,
+                    front_face: false,
                 };
 
                 let outward_normal = (&rec.p - &self.center) / self.radius;

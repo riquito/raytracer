@@ -7,7 +7,7 @@ mod ray;
 use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::hittable_list::HittableList;
-use crate::materials::{Lambertian, Material, MaterialCommon, Metal, Scatter};
+use crate::materials::{Dielectric, Lambertian, Material, MaterialCommon, Metal, Scatter};
 use ray::Ray;
 
 use minifb::{Key, Window, WindowOptions};
@@ -145,7 +145,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             center: Array1::from(vec![0., 0., -1.]),
             radius: 0.5,
             material: Material::Lambertian(Lambertian {
-                albedo: Array1::from(vec![0.7, 0.3, 0.3]),
+                albedo: Array1::from(vec![0.1, 0.2, 0.5]),
             }),
         },
         Sphere {
@@ -163,7 +163,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         Sphere {
             center: Array1::from(vec![-1., 0., -1.]),
             radius: 0.5,
-            material: Material::Metal(Metal::new(Array1::from(vec![0.8, 0.8, 0.8]), 1.0)),
+            material: Material::Dielectric(Dielectric::new(1.5)),
+        },
+        Sphere {
+            center: Array1::from(vec![-1., 0., -1.]),
+            radius: -0.45,
+            material: Material::Dielectric(Dielectric::new(1.5)),
         },
     ];
 
