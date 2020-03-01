@@ -23,6 +23,7 @@ trait MoreOps {
     fn unit_vector(&self) -> Array1<f64>;
     fn squared_length(&self) -> f64;
     fn length(&self) -> f64;
+    fn cross(&self, v: &Array1<f64>) -> Array1<f64>;
 }
 
 impl MoreOps for Array1<f64> {
@@ -34,6 +35,13 @@ impl MoreOps for Array1<f64> {
     }
     fn length(&self) -> f64 {
         self.squared_length().sqrt()
+    }
+    fn cross(&self, v: &Array1<f64>) -> Array1<f64> {
+        Array1::from(vec![
+            self[1] * v[2] - self[2] * v[1],
+            self[2] * v[0] - self[0] * v[2],
+            self[0] * v[1] - self[1] * v[0],
+        ])
     }
 }
 
@@ -133,12 +141,16 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000)));
+    let vup = Array1::from(vec![0., 1., 0.]);
 
-    let lower_left_corner = Array1::from(vec![-2., -1., -1.]);
-    let horizontal = Array1::from(vec![4., 0., 0.]);
-    let vertical = Array1::from(vec![0., 2., 0.]);
-    let origin = Array1::from(vec![0., 0., 0.]);
-    let cam = Camera::new(lower_left_corner, horizontal, vertical, origin);
+    let cam = Camera::new(
+        Array1::from(vec![-2., 2., 1.]),
+        Array1::from(vec![0., 0., -1.]),
+        vup,
+        90.,
+        WIDTH as f64 / HEIGHT as f64,
+    );
+    let R = std::f64::consts::PI / 4.;
 
     let list = vec![
         Sphere {
