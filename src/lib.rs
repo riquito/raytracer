@@ -129,6 +129,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let chunks = 1000;
 
     while window.is_open() && !window.is_key_down(Key::Enter) {
+        let start = std::time::Instant::now();
         buffer
             .par_chunks_mut(chunks)
             .enumerate()
@@ -141,6 +142,11 @@ pub fn run() -> Result<(), Box<dyn Error>> {
             });
 
         window.update_with_buffer(&buffer, WIDTH, HEIGHT)?;
+        let duration = start.elapsed();
+
+        println!("Time elapsed: {:?}", duration);
+        println!("Sleep for a while");
+        std::thread::sleep(std::time::Duration::from_millis(1000));
     }
     Ok(())
 }
