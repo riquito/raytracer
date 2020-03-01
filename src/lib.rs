@@ -95,11 +95,14 @@ pub fn draw_pixel(
 
         col = col + color(&r, world, max_depth);
     }
+
+    // Divide the color total by the number of samples and gamma-correct
+    // for a gamma value of 2.0 (it's the following sqrt).
     col /= samples_per_pixel as f64;
 
-    let ir = (256.0 * clamp(col[0], 0.0, 0.999)) as u32;
-    let ig = (256.0 * clamp(col[1], 0.0, 0.999)) as u32;
-    let ib = (256.0 * clamp(col[2], 0.0, 0.999)) as u32;
+    let ir = (256.0 * clamp(col[0].sqrt(), 0.0, 0.999)) as u32;
+    let ig = (256.0 * clamp(col[1].sqrt(), 0.0, 0.999)) as u32;
+    let ib = (256.0 * clamp(col[2].sqrt(), 0.0, 0.999)) as u32;
     (ir << 16) | (ig << 8) | ib
 }
 
