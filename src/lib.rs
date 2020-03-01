@@ -1,11 +1,13 @@
 mod camera;
 mod hittable;
 mod hittable_list;
+mod materials;
 mod ray;
 
 use crate::camera::Camera;
-use crate::hittable::{HitRecord, Hittable, Sphere};
+use crate::hittable::{Hittable, Sphere};
 use crate::hittable_list::HittableList;
+use crate::materials::{Lambertian, Material, MaterialCommon, Metal, Scatter};
 use ray::Ray;
 
 use minifb::{Key, Window, WindowOptions};
@@ -35,7 +37,7 @@ impl MoreOps for Array1<f64> {
     }
 }
 
-fn random_unit_vector() -> Array1<f64> {
+pub fn random_unit_vector() -> Array1<f64> {
     let mut rng = rand::thread_rng();
 
     let a: f64 = rng.gen_range(0., 2. * std::f64::consts::PI);
@@ -56,14 +58,21 @@ fn clamp(x: f64, min: f64, max: f64) -> f64 {
 }
 
 fn color(r: &Ray, world: &dyn Hittable, depth: usize) -> Array1<f64> {
-    let mut rec = HitRecord::new();
-    if world.hit(r, 0.001, std::f64::MAX, &mut rec) {
+    if let Some(rec) = world.hit(r, 0.001, std::f64::MAX) {
         // If we've exceeded the ray bounce limit, no more light is gathered.
         if depth == 0 {
             return Array1::<f64>::zeros(3);
         }
-        let target = random_unit_vector() + &rec.p + &rec.normal;
-        0.5 * color(&Ray::new(rec.p.clone(), target - &rec.p), world, depth - 1)
+
+        if let Some(Scatter {
+            ray: scattered,
+            attenuation,
+        }) = rec.material.scatter(r, &rec)
+        {
+            attenuation * color(&scattered, world, depth - 1)
+        } else {
+            Array1::<f64>::zeros(3)
+        }
     } else {
         let unit_direction = r.direction.unit_vector();
         let t: f64 = 0.5 * (unit_direction[1] + 1.0);
@@ -115,15 +124,36 @@ pub fn run() -> Result<(), Box<dyn Error>> {
     let origin = Array1::from(vec![0., 0., 0.]);
     let cam = Camera::new(lower_left_corner, horizontal, vertical, origin);
 
-    let mut list = Vec::new();
-    list.push(Sphere {
-        center: Array1::from(vec![0., 0., -1.]),
-        radius: 0.5,
-    });
-    list.push(Sphere {
-        center: Array1::from(vec![0., -100.5, -1.]),
-        radius: 100.,
-    });
+    let list = vec![
+        Sphere {
+            center: Array1::from(vec![0., 0., -1.]),
+            radius: 0.5,
+            material: Material::Lambertian(Lambertian {
+                albedo: Array1::from(vec![0.7, 0.3, 0.3]),
+            }),
+        },
+        Sphere {
+            center: Array1::from(vec![0., -100.5, -1.]),
+            radius: 100.,
+            material: Material::Lambertian(Lambertian {
+                albedo: Array1::from(vec![0.8, 0.8, 0.0]),
+            }),
+        },
+        Sphere {
+            center: Array1::from(vec![1., 0., -1.]),
+            radius: 0.5,
+            material: Material::Metal(Metal {
+                albedo: Array1::from(vec![0.8, 0.6, 0.2]),
+            }),
+        },
+        Sphere {
+            center: Array1::from(vec![-1., 0., -1.]),
+            radius: 0.5,
+            material: Material::Metal(Metal {
+                albedo: Array1::from(vec![0.8, 0.8, 0.8]),
+            }),
+        },
+    ];
 
     let world = HittableList { list };
     let chunks = 1000;
