@@ -45,6 +45,18 @@ impl MoreOps for Array1<f64> {
     }
 }
 
+pub fn random_in_unit_disc() -> Array1<f64> {
+    let mut rng = rand::thread_rng();
+
+    loop {
+        let p: Array1<f64> = Array1::from(vec![rng.gen_range(-1., 1.), rng.gen_range(-1., 1.), 0.]);
+
+        if p.squared_length() < 1.0 {
+            return p;
+        }
+    }
+}
+
 pub fn random_in_unit_sphere() -> Array1<f64> {
     let mut rng = rand::thread_rng();
 
@@ -142,15 +154,20 @@ pub fn run() -> Result<(), Box<dyn Error>> {
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000)));
     let vup = Array1::from(vec![0., 1., 0.]);
+    let lookfrom = Array1::from(vec![-2., 2., 1.]);
+    let lookat = Array1::from(vec![0., 0., -1.]);
+    let dist_to_focus = (&lookfrom - &lookat).length();
+    let aperture = 1.;
 
     let cam = Camera::new(
-        Array1::from(vec![-2., 2., 1.]),
-        Array1::from(vec![0., 0., -1.]),
+        lookfrom,
+        lookat,
         vup,
         90.,
         WIDTH as f64 / HEIGHT as f64,
+        aperture,
+        dist_to_focus,
     );
-    let R = std::f64::consts::PI / 4.;
 
     let list = vec![
         Sphere {
