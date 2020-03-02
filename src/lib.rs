@@ -148,60 +148,112 @@ pub fn draw_pixel(
     (ir << 16) | (ig << 8) | ib
 }
 
+fn random_scene() -> HittableList<Sphere> {
+    let mut list: Vec<Sphere> = Vec::new();
+    let mut rng = rand::thread_rng();
+    list.push(Sphere {
+        center: Array1::from(vec![0., -1000., 0.]),
+        radius: 1000.,
+        material: Material::Lambertian(Lambertian {
+            albedo: Array1::from(vec![0.5, 0.5, 0.5]),
+        }),
+    });
+
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat: f64 = rng.gen();
+            let center = Array1::from(vec![
+                a as f64 + 0.9 * rng.gen::<f64>(),
+                0.2,
+                b as f64 + 0.9 * rng.gen::<f64>(),
+            ]);
+            let tmp_vec = Array1::from(vec![4., 0.2, 0.]);
+
+            if (&center - &tmp_vec).length() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    list.push(Sphere {
+                        center: center.clone(),
+                        radius: 0.2,
+                        material: Material::Lambertian(Lambertian {
+                            albedo: Array1::from(vec![
+                                rng.gen::<f64>() * rng.gen::<f64>(),
+                                rng.gen::<f64>() * rng.gen::<f64>(),
+                                rng.gen::<f64>() * rng.gen::<f64>(),
+                            ]),
+                        }),
+                    })
+                } else if choose_mat < 0.95 {
+                    // metal
+                    list.push(Sphere {
+                        center: center.clone(),
+                        radius: 0.2,
+                        material: Material::Metal(Metal::new(
+                            Array1::from(vec![
+                                0.5 * (1. + rng.gen::<f64>()),
+                                0.5 * (1. + rng.gen::<f64>()),
+                                0.5 * (1. + rng.gen::<f64>()),
+                            ]),
+                            0.5 * rng.gen::<f64>(),
+                        )),
+                    })
+                } else {
+                    // glass
+                    list.push(Sphere {
+                        center: center.clone(),
+                        radius: 0.2,
+                        material: Material::Dielectric(Dielectric::new(1.5)),
+                    })
+                }
+            }
+        }
+    }
+
+    list.push(Sphere {
+        center: Array1::from(vec![0., 1., 0.]),
+        radius: 1.0,
+        material: Material::Dielectric(Dielectric::new(1.5)),
+    });
+
+    list.push(Sphere {
+        center: Array1::from(vec![-4., 1., 0.]),
+        radius: 1.0,
+        material: Material::Lambertian(Lambertian {
+            albedo: Array1::from(vec![0.4, 0.2, 0.1]),
+        }),
+    });
+
+    list.push(Sphere {
+        center: Array1::from(vec![4., 1., 0.]),
+        radius: 1.0,
+        material: Material::Metal(Metal::new(Array1::from(vec![0.7, 0.6, 0.5]), 0.)),
+    });
+
+    HittableList { list }
+}
+
 pub fn run() -> Result<(), Box<dyn Error>> {
     let mut window = Window::new("Test", WIDTH, HEIGHT, WindowOptions::default())?;
     let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
 
     window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000)));
     let vup = Array1::from(vec![0., 1., 0.]);
-    let lookfrom = Array1::from(vec![-2., 2., 1.]);
-    let lookat = Array1::from(vec![0., 0., -1.]);
-    let dist_to_focus = (&lookfrom - &lookat).length();
-    let aperture = 1.;
+    let lookfrom = Array1::from(vec![13., 2., 3.]);
+    let lookat = Array1::from(vec![0., 0., 0.]);
+    let dist_to_focus = 10.; // (&lookfrom - &lookat).length();
+    let aperture = 0.1;
 
     let cam = Camera::new(
         lookfrom,
         lookat,
         vup,
-        90.,
+        20.,
         WIDTH as f64 / HEIGHT as f64,
         aperture,
         dist_to_focus,
     );
 
-    let list = vec![
-        Sphere {
-            center: Array1::from(vec![0., 0., -1.]),
-            radius: 0.5,
-            material: Material::Lambertian(Lambertian {
-                albedo: Array1::from(vec![0.1, 0.2, 0.5]),
-            }),
-        },
-        Sphere {
-            center: Array1::from(vec![0., -100.5, -1.]),
-            radius: 100.,
-            material: Material::Lambertian(Lambertian {
-                albedo: Array1::from(vec![0.8, 0.8, 0.0]),
-            }),
-        },
-        Sphere {
-            center: Array1::from(vec![1., 0., -1.]),
-            radius: 0.5,
-            material: Material::Metal(Metal::new(Array1::from(vec![0.8, 0.6, 0.2]), 0.3)),
-        },
-        Sphere {
-            center: Array1::from(vec![-1., 0., -1.]),
-            radius: 0.5,
-            material: Material::Dielectric(Dielectric::new(1.5)),
-        },
-        Sphere {
-            center: Array1::from(vec![-1., 0., -1.]),
-            radius: -0.45,
-            material: Material::Dielectric(Dielectric::new(1.5)),
-        },
-    ];
-
-    let world = HittableList { list };
+    let world = random_scene();
     let chunks = 1000;
 
     buffer
