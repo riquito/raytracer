@@ -10,14 +10,9 @@ use crate::hittable_list::HittableList;
 use crate::materials::{Dielectric, Lambertian, Material, MaterialCommon, Metal, Scatter};
 use ray::Ray;
 
-use minifb::{Key, Window, WindowOptions};
 use ndarray::Array1;
 use rand::Rng;
 use rayon::prelude::*;
-use std::error::Error;
-
-const WIDTH: usize = 400;
-const HEIGHT: usize = 200;
 
 trait MoreOps {
     fn unit_vector(&self) -> Array1<f64>;
@@ -232,11 +227,9 @@ fn random_scene() -> HittableList<Sphere> {
     HittableList { list }
 }
 
-pub fn run() -> Result<(), Box<dyn Error>> {
-    let mut window = Window::new("Test", WIDTH, HEIGHT, WindowOptions::default())?;
-    let mut buffer: Vec<u32> = vec![0; WIDTH * HEIGHT];
+pub fn run(width: usize, height: usize) -> Vec<u32> {
+    let mut buffer: Vec<u32> = vec![0; width * height];
 
-    window.limit_update_rate(Some(std::time::Duration::from_micros(1_000_000)));
     let vup = Array1::from(vec![0., 1., 0.]);
     let lookfrom = Array1::from(vec![13., 2., 3.]);
     let lookat = Array1::from(vec![0., 0., 0.]);
@@ -248,7 +241,7 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         lookat,
         vup,
         20.,
-        WIDTH as f64 / HEIGHT as f64,
+        width as f64 / height as f64,
         aperture,
         dist_to_focus,
     );
@@ -262,19 +255,12 @@ pub fn run() -> Result<(), Box<dyn Error>> {
         .for_each(|(i_w, window)| {
             let mut i = i_w * chunks;
             for bi in window {
-                *bi = draw_pixel(i, WIDTH, HEIGHT, &cam, &world);
+                *bi = draw_pixel(i, width, height, &cam, &world);
                 i += 1;
             }
         });
 
-    while window.is_open() && !window.is_key_down(Key::Enter) {
-        let start = std::time::Instant::now();
-        window.update_with_buffer(&buffer, WIDTH, HEIGHT)?;
-        let duration = start.elapsed();
 
-        println!("Time elapsed: {:?}", duration);
-        println!("Sleep for a while");
-        std::thread::sleep(std::time::Duration::from_millis(1000));
-    }
-    Ok(())
+
+    buffer
 }
