@@ -4,6 +4,9 @@ use crate::image::write_to_file;
 use crate::window::run_window;
 use raytracer::run;
 use structopt::StructOpt;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 /// Toy raytracer.
 #[derive(StructOpt)]
@@ -23,9 +26,13 @@ struct Cli {
 }
 
 fn main() {
+    env_logger::init();
+
     let args = Cli::from_args();
     let buffer = run(args.width, args.height);
 
+    debug!("this is a debug {}", "message");
+    error!("this is printed by default");
     if let Some(file) = args.file {
         write_to_file(&file, &buffer, args.width, args.height);
     }

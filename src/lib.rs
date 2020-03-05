@@ -8,6 +8,7 @@ use crate::camera::Camera;
 use crate::hittable::{Hittable, Sphere};
 use crate::hittable_list::HittableList;
 use crate::materials::{Dielectric, Lambertian, Material, MaterialCommon, Metal, Scatter};
+use log::debug;
 use ray::Ray;
 
 use ndarray::Array1;
@@ -137,6 +138,12 @@ pub fn draw_pixel(
     // for a gamma value of 2.0 (it's the following sqrt).
     col /= samples_per_pixel as f64;
 
+    if (col[0].sqrt() < 0. || col[0].sqrt() > 0.999)
+        || (col[1].sqrt() < 0. || col[1].sqrt() > 0.999)
+        || (col[2].sqrt() < 0. || col[2].sqrt() > 0.999)
+    {
+        debug!("colore {:.4} {:.4} {:.4}", col[0], col[1], col[2]);
+    }
     let ir = (256.0 * clamp(col[0].sqrt(), 0.0, 0.999)) as u32;
     let ig = (256.0 * clamp(col[1].sqrt(), 0.0, 0.999)) as u32;
     let ib = (256.0 * clamp(col[2].sqrt(), 0.0, 0.999)) as u32;
@@ -260,7 +267,10 @@ pub fn run(width: usize, height: usize) -> Vec<u32> {
             }
         });
 
+    let start = std::time::Instant::now();
 
+    println!("Time elapsed: {:?}", start.elapsed());
+    println!("Sleep for a while");
 
     buffer
 }
